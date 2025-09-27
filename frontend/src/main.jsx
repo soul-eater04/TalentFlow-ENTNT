@@ -5,6 +5,7 @@ import './index.css';
 import App from './App.jsx';
 import { makeServer } from '../mirage/server';
 import { seedJobs } from '../mirage/db';
+import { ThemeProvider } from './context/ThemeProvider';
 
 async function main() {
   if (import.meta.env.DEV) {
@@ -16,7 +17,9 @@ async function main() {
   
   createRoot(document.getElementById('root')).render(
     <StrictMode>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </StrictMode>
   );
 }
