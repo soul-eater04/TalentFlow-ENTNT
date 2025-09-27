@@ -1,5 +1,5 @@
 // src/mirage/server.js
-import { createServer } from "miragejs";
+import { createServer , Response } from "miragejs";
 import { db } from "./db";
 
 function slugify(text) {
@@ -19,8 +19,8 @@ export function makeServer() {
       this.namespace = "api";
 
       // GET /api/jobs
-      this.get("/jobs", async (schema ,request) => {
-        console.log("request : ", request)
+      this.get("/jobs", async (schema, request) => {
+        console.log("request : ", request);
         const { search, status, page, pageSize } = request.queryParams;
 
         const searchParam = search || "";
@@ -31,23 +31,25 @@ export function makeServer() {
         let collection = db.jobs.toCollection();
         console.log("Initial job collection:", await collection.toArray());
         if (searchParam) {
-            collection = collection.filter(job =>
+          collection = collection.filter((job) =>
             job.title.toLowerCase().includes(searchParam.toLowerCase())
-            );
+          );
         }
         if (statusParam) {
-            collection = collection.filter(job => job.status === statusParam);
+          collection = collection.filter((job) => job.status === statusParam);
         }
 
         let allJobs = await collection.sortBy("order");
         allJobs = allJobs.reverse();
 
         const totalPages = Math.ceil(allJobs.length / pageSizeParam);
-        const paginated = allJobs.slice((pageParam - 1) * pageSizeParam, pageParam * pageSizeParam);
+        const paginated = allJobs.slice(
+          (pageParam - 1) * pageSizeParam,
+          pageParam * pageSizeParam
+        );
 
         return { jobs: paginated, totalPages };
       });
-
 
       // GET /api/jobs/:slug
       this.get("/jobs/:slug", async (schema, request) => {
@@ -91,11 +93,45 @@ export function makeServer() {
         return newJob;
       });
 
-      // DELETE /api/jobs/:id
-      this.delete("/jobs/:id", async (schema, request) => {
-        const id = Number(request.params.id);
-        await db.jobs.delete(id);
-        return { success: true };
+      // PATCH /api/jobs/:id/reorder
+      this.patch("/jobs/:id/reorder", async (schema, request) => {
+        // Simulate random server error 20% of the time
+        const rand = Math.random();
+        if (rand < 0.2) {
+          return new Response(500, {}, { error: "Random server error. Please try again." });
+        }
+
+        const { id } = request.params;
+        const { fromOrder, toOrder } = JSON.parse(request.requestBody);
+
+        const job = await db.jobs.get(Number(id));
+        if (!job) {
+          return new Response(404, {}, { error: "Job not found" });
+        }
+
+        if (fromOrder < toOrder) {
+          // Move down → shift jobs in (fromOrder, toOrder] up by -1
+          await db.jobs
+            .where("order")
+            .between(fromOrder + 1, toOrder, true, true)
+            .modify((j) => {
+              j.order = j.order - 1;
+            });
+        } else if (fromOrder > toOrder) {
+          // Move up → shift jobs in [toOrder, fromOrder) down by +1
+          await db.jobs
+            .where("order")
+            .between(toOrder, fromOrder - 1, true, true)
+            .modify((j) => {
+              j.order = j.order + 1;
+            });
+        }
+
+        // Finally update the dragged job itself
+        await db.jobs.update(job.id, { order: toOrder });
+
+        const updatedJob = await db.jobs.get(job.id);
+        return updatedJob;
       });
     },
   });

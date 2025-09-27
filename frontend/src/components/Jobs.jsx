@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "./ui/button";
-import { seedJobs } from "../../mirage/db";
 import { CreateJobModal } from "./CreateJobModal";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+} from "@hello-pangea/dnd";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -14,18 +19,12 @@ const Jobs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    console.log("Seeding jobs...");
-    seedJobs();
-  }, []);
-
   const fetchJobs = async () => {
     setLoading(true);
     try {
       const { data } = await axios.get("/api/jobs", {
         params: { search, status, page, pageSize, sort },
       });
-      console.log("Fetched jobs:", data);
       setJobs(data.jobs);
       setTotalPages(data.totalPages);
     } catch (err) {
@@ -38,6 +37,27 @@ const Jobs = () => {
   useEffect(() => {
     fetchJobs();
   }, [search, status, page, pageSize, sort]);
+
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+    const reordered = Array.from(jobs);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+
+    // optimistic update
+    setJobs(reordered);
+
+    try {
+      await axios.patch(`/api/jobs/${moved.id}/reorder`, {
+        fromOrder: result.source.index,
+        toOrder: result.destination.index,
+      });
+    } catch (err) {
+      console.error("Reorder failed, rolling back", err);
+      // rollback
+      setJobs(jobs);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -68,9 +88,8 @@ const Jobs = () => {
           className="border p-2 rounded"
         >
           <option value="">All statuses</option>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-          <option value="draft">Draft</option>
+          <option value="active">Active</option>
+          <option value="archived">Archived</option>
         </select>
         <select
           value={sort}
@@ -84,51 +103,83 @@ const Jobs = () => {
         </select>
       </div>
 
-      {/* Jobs List */}
+      {/* Jobs List with Drag & Drop */}
       {loading ? (
         <p className="text-center py-6">Loading...</p>
       ) : (
-        <ul className="border rounded divide-y divide-gray-200">
-          {jobs?.map((job) => (
-            <li key={job.id} className="p-4 hover:bg-gray-50 transition">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">{job.title}</h3>
-                  <p className="text-sm text-gray-500">{job.description}</p>
-                </div>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    job.status === "open"
-                      ? "bg-green-100 text-green-800"
-                      : job.status === "closed"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {job.status}
-                </span>
-              </div>
-              <div className="mt-2 text-sm text-gray-600 flex flex-wrap gap-4">
-                <span>Posted by: {job.postedBy}</span>
-                <span>Location: {job.location}</span>
-                <span>Vacancies: {job.vacancies}</span>
-                <span>
-                  Posted on: {new Date(job.postingDate).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {job.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="jobs">
+            {(provided) => (
+              <ul
+                className="border rounded divide-y"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
+                {jobs?.map((job, index) => (
+                  <Draggable
+                    key={job.id}
+                    draggableId={String(job.id)}
+                    index={index}
                   >
-                    {tag}
-                  </span>
+                    {(provided) => (
+                      <li
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="p-4 transition"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <Link
+                              to={`/jobs/${job.slug}`}
+                              className="hover:underline hover:text-blue-600"
+                            >
+                              <h3 className="text-lg font-semibold">
+                                {job.title}
+                              </h3>
+                            </Link>
+                            <p className="text-sm text-gray-500">
+                              {job.description}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              job.status === "active"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {job.status}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-600 flex flex-wrap gap-4">
+                          <span>Posted by: {job.postedBy}</span>
+                          <span>Location: {job.location}</span>
+                          <span>Vacancies: {job.vacancies}</span>
+                          <span>
+                            Posted on:{" "}
+                            {new Date(job.postingDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {job.tags?.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </li>
+                    )}
+                  </Draggable>
                 ))}
-              </div>
-            </li>
-          ))}
-        </ul>
+                {provided.placeholder}
+              </ul>
+            )}
+          </Droppable>
+        </DragDropContext>
       )}
 
       {/* Pagination */}
