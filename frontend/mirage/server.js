@@ -2,39 +2,51 @@
 import { createServer } from "miragejs";
 import { db } from "./db";
 
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-") // spaces → dashes
+    .replace(/&/g, "-and-")
+    .replace(/[^\w\-]+/g, "") // remove non-word chars
+    .replace(/\-\-+/g, "-"); // collapse dashes
+}
+
 export function makeServer() {
   return createServer({
     routes() {
       this.namespace = "api";
 
       // GET /api/jobs
-      this.get("/jobs", async (request) => {
-        const url = new URL(request.url, window.location.origin);
+      this.get("/jobs", async (schema ,request) => {
+        console.log("request : ", request)
+        const { search, status, page, pageSize } = request.queryParams;
 
-        const search = url.searchParams.get("search") || "";
-        const status = url.searchParams.get("status") || "";
-        const page = Number(url.searchParams.get("page") || 1);
-        const pageSize = Number(url.searchParams.get("pageSize") || 10);
+        const searchParam = search || "";
+        const statusParam = status || "";
+        const pageParam = Number(page || 1);
+        const pageSizeParam = Number(pageSize || 10);
 
         let collection = db.jobs.toCollection();
         console.log("Initial job collection:", await collection.toArray());
-        if (search) {
+        if (searchParam) {
             collection = collection.filter(job =>
-            job.title.toLowerCase().includes(search.toLowerCase())
+            job.title.toLowerCase().includes(searchParam.toLowerCase())
             );
         }
-        if (status) {
-            collection = collection.filter(job => job.status === status);
+        if (statusParam) {
+            collection = collection.filter(job => job.status === statusParam);
         }
 
-        let allJobs = await collection.sortBy("postingDate");
+        let allJobs = await collection.sortBy("order");
         allJobs = allJobs.reverse();
 
-        const totalPages = Math.ceil(allJobs.length / pageSize);
-        const paginated = allJobs.slice((page - 1) * pageSize, page * pageSize);
+        const totalPages = Math.ceil(allJobs.length / pageSizeParam);
+        const paginated = allJobs.slice((pageParam - 1) * pageSizeParam, pageParam * pageSizeParam);
 
         return { jobs: paginated, totalPages };
-        });
+      });
 
 
       // GET /api/jobs/:slug
@@ -48,8 +60,35 @@ export function makeServer() {
       // POST /api/jobs (create/update)
       this.post("/jobs", async (schema, request) => {
         const attrs = JSON.parse(request.requestBody);
-        await db.jobs.put(attrs); // insert or update
-        return attrs;
+
+        // Get current max order & id
+        const allJobs = await db.jobs.toArray();
+        const maxOrder = allJobs.length
+          ? Math.max(...allJobs.map((j) => j.order || 0))
+          : 0;
+        const maxId = allJobs.length
+          ? Math.max(...allJobs.map((j) => j.id || 0))
+          : 0;
+
+        // Build new job
+        const newJob = {
+          id: maxId + 1,
+          title: attrs.title,
+          slug: slugify(attrs.title),
+          status: attrs.status || "active",
+          tags: attrs.tags || [],
+          order: maxOrder + 1,
+          description: attrs.description || "",
+          postedBy: attrs.postedBy || "",
+          location: attrs.location || "",
+          vacancies: attrs.vacancies || 0,
+          postingDate: attrs.postingDate || new Date().toISOString(),
+        };
+
+        // Save to IndexedDB via Dexie
+        await db.jobs.add(newJob);
+
+        return newJob;
       });
 
       // DELETE /api/jobs/:id

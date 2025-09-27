@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "./ui/button";
 import { seedJobs } from "../../mirage/db";
+import { CreateJobModal } from "./CreateJobModal";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -13,31 +14,28 @@ const Jobs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-
   useEffect(() => {
     console.log("Seeding jobs...");
     seedJobs();
-
   }, []);
 
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get("/api/jobs", {
+        params: { search, status, page, pageSize, sort },
+      });
+      console.log("Fetched jobs:", data);
+      setJobs(data.jobs);
+      setTotalPages(data.totalPages);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      setLoading(true);
-      try {
-        const { data } = await axios.get("/api/jobs", {
-          params: { search, status, page, pageSize, sort },
-        });
-        console.log("Fetched jobs:", data);
-        setJobs(data.jobs);
-        setTotalPages(data.totalPages);
-      } catch (err) {
-        console.error("Error fetching jobs:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchJobs();
   }, [search, status, page, pageSize, sort]);
 
@@ -46,7 +44,7 @@ const Jobs = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Jobs Board</h2>
-        <Button variant="outline">New Job</Button>
+        <CreateJobModal fetchJobs={fetchJobs} />
       </div>
 
       {/* Filters */}

@@ -21,7 +21,7 @@ const mockJobs = [
     vacancies: 2,
     location: "Remote",
     tags: ["react", "ui", "javascript"],
-    priority: 1,
+    order: 1,
   },
   {
     id: 2,
@@ -34,13 +34,21 @@ const mockJobs = [
     vacancies: 1,
     location: "NYC",
     tags: ["node", "api", "express"],
-    priority: 2,
+    order: 2,
   },
-  // add more jobs
 ];
 
 export async function seedJobs() {
-  await db.jobs.clear(); // optional: clear existing jobs
-  await db.jobs.bulkAdd(mockJobs);
-  console.log("Database seeded with mock jobs.");
+  // await db.jobs.clear(); // optional: clear existing jobs
+  try {
+    const count = await db.jobs.count();
+    if (count > 0) {
+      console.log("Database already seeded.");
+      return;
+    }
+    await db.jobs.bulkAdd(mockJobs);
+    console.log("Database seeded with mock jobs.");
+  } catch (error) {
+    console.error("Error seeding jobs:", error);
+  }
 }
