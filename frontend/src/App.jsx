@@ -12,6 +12,7 @@ import Candidates from "./components/Candidates";
 import CandidateDetail from "./components/CandidateDetail";
 import Assessment from "./components/Assessment";
 import { ModeToggle } from "./ModeToggle";
+import KanbanBoard from "./components/KanbanBoard";
 
 const App = () => {
   return (
@@ -60,6 +61,7 @@ const App = () => {
         />
         <Route path="/candidates/:id" element={<CandidateDetail />} />
         <Route path="/assessment" element={<Assessment />} />
+        <Route path="/kanban/:jobid" element={<KanbanBoard />} />
       </Routes>
     </Router>
   );

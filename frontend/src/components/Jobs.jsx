@@ -3,11 +3,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "./ui/button";
 import { CreateJobModal } from "./CreateJobModal";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-} from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { ApplyJobModal } from "./ApplyJobModal";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -18,6 +15,7 @@ const Jobs = () => {
   const [sort, setSort] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [applyJobId, setApplyJobId] = useState(null);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -60,7 +58,7 @@ const Jobs = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Jobs Board</h2>
@@ -85,8 +83,7 @@ const Jobs = () => {
             setPage(1);
             setStatus(e.target.value);
           }}
-          className="border p-2 rounded"
-        >
+          className="border p-2 rounded">
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="archived">Archived</option>
@@ -94,8 +91,7 @@ const Jobs = () => {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="border p-2 rounded"
-        >
+          className="border p-2 rounded">
           <option value="createdAt:desc">Newest</option>
           <option value="createdAt:asc">Oldest</option>
           <option value="title:asc">Title A-Z</option>
@@ -113,27 +109,23 @@ const Jobs = () => {
               <ul
                 className="border rounded divide-y"
                 {...provided.droppableProps}
-                ref={provided.innerRef}
-              >
+                ref={provided.innerRef}>
                 {jobs?.map((job, index) => (
                   <Draggable
                     key={job.id}
                     draggableId={String(job.id)}
-                    index={index}
-                  >
+                    index={index}>
                     {(provided) => (
                       <li
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className="p-4 transition"
-                      >
+                        className="p-4 transition">
                         <div className="flex justify-between items-start">
                           <div>
                             <Link
                               to={`/jobs/${job.slug}`}
-                              className="hover:underline hover:text-blue-600"
-                            >
+                              className="hover:underline hover:text-blue-600">
                               <h3 className="text-lg font-semibold">
                                 {job.title}
                               </h3>
@@ -141,14 +133,17 @@ const Jobs = () => {
                             <p className="text-sm text-gray-500">
                               {job.description}
                             </p>
+                            <Link to={`/kanban/${job.id}`}>
+                              <div> Job progression Board</div>
+                            </Link>
                           </div>
+
                           <span
                             className={`px-2 py-1 rounded text-xs font-medium ${
                               job.status === "active"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
+                            }`}>
                             {job.status}
                           </span>
                         </div>
@@ -160,13 +155,17 @@ const Jobs = () => {
                             Posted on:{" "}
                             {new Date(job.postingDate).toLocaleDateString()}
                           </span>
+                          <Button
+                            className="mt-2"
+                            onClick={() => setApplyJobId(job.id)}>
+                            Apply
+                          </Button>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {job.tags?.map((tag) => (
                             <span
                               key={tag}
-                              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
-                            >
+                              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                               {tag}
                             </span>
                           ))}
@@ -187,8 +186,7 @@ const Jobs = () => {
         <Button
           variant="outline"
           disabled={page === 1}
-          onClick={() => setPage((p) => p - 1)}
-        >
+          onClick={() => setPage((p) => p - 1)}>
           Prev
         </Button>
         <span>
@@ -197,11 +195,15 @@ const Jobs = () => {
         <Button
           variant="outline"
           disabled={page === totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
+          onClick={() => setPage((p) => p + 1)}>
           Next
         </Button>
       </div>
+      <ApplyJobModal
+        jobId={applyJobId}
+        open={!!applyJobId}
+        onClose={() => setApplyJobId(null)}
+      />
     </div>
   );
 };

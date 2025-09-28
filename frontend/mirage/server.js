@@ -1,6 +1,7 @@
 // src/mirage/server.js
 import { createServer , Response } from "miragejs";
 import { db } from "./db";
+import { faker } from "@faker-js/faker";
 
 function slugify(text) {
   return text
@@ -160,6 +161,73 @@ export function makeServer() {
         const candidate = await db.candidates.get(id);
         if (!candidate) return new Response(404, {}, { error: "Candidate not found" });
         return candidate;
+      });
+
+      this.get("/candidates/:jobid", async (schema, request) => {
+        const jobId = request.params.jobid;
+
+        try {
+          const candidates = await db.candidates.where("jobId").equals(jobId).toArray();
+          return { candidates };
+        } catch (error) {
+          console.error("❌ Error fetching candidates:", error);
+          return { candidates: [] };
+        }
+      });
+
+      this.patch("/candidates/:id", async (schema, request) => {
+        const { id } = request.params;
+        const attrs = JSON.parse(request.requestBody);
+        const { stage, stageUpdatedAt } = attrs;
+        
+        try {
+          const candidate = await db.candidates.get(id);
+          if (!candidate) {
+            return new Response(404, {}, { error: "Candidate not found" });
+          }
+          if(stage === candidate.stage) {
+            throw new Error("Stage is the same as current stage");
+          }
+
+          // Update stage
+          candidate.stage = stage;
+
+          // Append to timeline
+          if (!Array.isArray(candidate.timeline)) {
+            candidate.timeline = [];
+          }
+          candidate.timeline.push({ stage, stageUpdatedAt });
+
+          // Save back to Dexie
+          await db.candidates.put(candidate);
+
+          return { candidate };
+        } catch (error) {
+          console.error("❌ Failed to update candidate:", error);
+          return new Response(500, {}, { error: "Failed to update candidate" });
+        }
+      });
+
+      this.post("/candidates", async (schema, request) => {
+        const attrs = JSON.parse(request.requestBody);
+        const newCandidate = {
+          id: faker.string.uuid(),
+          name: attrs.name,
+          email: attrs.email,
+          phone: faker.phone.number(),
+          location: faker.location.city(),
+          jobId: attrs.jobId,
+          stage: "applied",
+          stageUpdatedAt: new Date().toISOString(),
+          timeline: [
+            {
+              stage: "applied",
+              stageUpdatedAt: new Date().toISOString(),
+            },
+          ],
+        };
+        await db.candidates.add(newCandidate);
+        return { candidate: newCandidate };
       });
     },
   });
