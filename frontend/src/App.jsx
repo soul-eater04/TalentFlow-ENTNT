@@ -50,7 +50,14 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/jobs/:slug" element={<JobDetail />} />
-        <Route path="/candidates" element={<Candidates />} />
+        <Route
+          path="/candidates"
+          element={
+            <div className="container-with-no-fixed-width">
+              <Candidates />
+            </div>
+          }
+        />
         <Route path="/candidates/:id" element={<CandidateDetail />} />
         <Route path="/assessment" element={<Assessment />} />
       </Routes>

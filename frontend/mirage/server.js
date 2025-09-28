@@ -133,6 +133,34 @@ export function makeServer() {
         const updatedJob = await db.jobs.get(job.id);
         return updatedJob;
       });
+
+      this.get("/candidates", async (schema, request) => {
+        console.log("request : ", request);
+        const { stage, page } = request.queryParams;
+        const stageParam = stage || "";
+        const pageParam = Number(page || 1);
+        const pageSizeParam = 50; // fixed page size
+        let collection = db.candidates.toCollection();
+        console.log("Initial candidate collection:", await collection.toArray());
+        if (stageParam) {
+          collection = collection.filter((c) => c.stage === stageParam);
+        }
+        let allCandidates = await collection.sortBy("stageUpdatedAt");
+        allCandidates = allCandidates.reverse();
+        const totalPages = Math.ceil(allCandidates.length / pageSizeParam);
+        const paginated = allCandidates.slice(
+          (pageParam - 1) * pageSizeParam,
+          pageParam * pageSizeParam
+        );
+        return {paginated, totalPages};
+      });
+
+      this.get("/candidates/:id/timeline", async (schema, request) => {
+        const { id } = request.params;
+        const candidate = await db.candidates.get(id);
+        if (!candidate) return new Response(404, {}, { error: "Candidate not found" });
+        return candidate;
+      });
     },
   });
 }
