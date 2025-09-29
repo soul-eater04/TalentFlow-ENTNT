@@ -17,7 +17,7 @@ import KanbanBoard from "./components/KanbanBoard";
 const App = () => {
   return (
     <Router>
-      <div className="px-4 shadow-sm">
+      <div className="sticky bg-muted top-0 z-10 px-4 shadow-sm">
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
