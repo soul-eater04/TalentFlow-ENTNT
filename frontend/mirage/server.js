@@ -1,4 +1,3 @@
-// src/mirage/server.js
 import { createServer , Response } from "miragejs";
 import { db } from "./db";
 import { faker } from "@faker-js/faker";
@@ -208,6 +207,31 @@ export function makeServer() {
         }
       });
 
+      this.put("/candidates/:id", async (schema, request) => {
+        const { id } = request.params;
+        const attrs = JSON.parse(request.requestBody);
+        const { note } = attrs;
+        if (!note || !note.trim()) {
+          return new Response(400, {}, { error: "Note cannot be empty" });
+        }
+        try {
+          const candidate = await db.candidates.get(id);
+          if (!candidate) {
+            return new Response(404, {}, { error: "Candidate not found" });
+          }
+          candidate.notes = candidate.notes || [];
+          candidate.notes.push({
+            text: note,
+            date: new Date().toISOString(),
+          });
+          await db.candidates.put(candidate);
+          return { candidate };
+        } catch (error) {
+          console.error("❌ Failed to update candidate:", error);
+          return new Response(500, {}, { error: "Failed to update candidate" });
+        }
+      });
+
       this.post("/candidates", async (schema, request) => {
         const attrs = JSON.parse(request.requestBody);
         const newCandidate = {
@@ -228,6 +252,35 @@ export function makeServer() {
         };
         await db.candidates.add(newCandidate);
         return { candidate: newCandidate };
+      });
+      
+      this.get("/assessments/:jobId", async (schema, request) => {
+        const { jobId } = request.params;
+        try {
+          const assessments = await db.assessments.where("jobId").equals(jobId).toArray();
+          return assessments;
+        } catch (error) {
+          console.error("❌ Error fetching assessments:", error);
+          return { assessments: [] };
+        }
+      });
+
+      this.post("/assessments/:jobId", (schema, request) => {
+        const { jobId } = request.params;
+        const attrs = JSON.parse(request.requestBody);
+
+        // Create a new assessment entry
+        const newAssessment = {
+          id: faker.string.uuid(),
+          jobId,
+          name: faker.person.fullName() + " Assessment",
+          ...attrs // include sections/questions structure from request body
+        };
+
+        // Save to Mirage DB
+        db.assessments.add(newAssessment);
+
+        return { assessment: newAssessment };
       });
     },
   });

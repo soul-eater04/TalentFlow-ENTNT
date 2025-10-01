@@ -7,6 +7,7 @@ export const db = new Dexie("JobsDatabase");
 db.version(1).stores({
   jobs: "id,title,slug,status,tags,postingDate,order",
   candidates: "id,name,jobId,email,stage,stageUpdatedAt",
+  assessments: "id,jobId,name,questions",
 });
 
 function generateMockJobs(count = 100) {
@@ -103,8 +104,14 @@ async function generateMockCandidates(count = 1000) {
       stage: timeline[timeline.length - 1].stage,
       phone: faker.phone.number(),
       location: faker.location.city(),
-      jobId: randomJob.id, // ✅ only jobId stored
+      jobId: randomJob.id, // jobId stored
       timeline,
+      notes : [
+        {
+          text: faker.lorem.sentence(),
+          date: faker.date.between({ from: timeline[0].stageUpdatedAt, to: new Date() }).toISOString(),
+        },
+      ],
     };
   });
 }

@@ -10,9 +10,11 @@ import Jobs from "./components/Jobs";
 import JobDetail from "./components/JobDetail";
 import Candidates from "./components/Candidates";
 import CandidateDetail from "./components/CandidateDetail";
-import Assessment from "./components/Assessment";
+import { Assessment, AssessmentTest } from "./components/Assessment";
 import { ModeToggle } from "./ModeToggle";
 import KanbanBoard from "./components/KanbanBoard";
+import { Toaster } from "sonner";
+import AssessmentList from "./components/AssessmentList";
 
 const App = () => {
   return (
@@ -47,6 +49,7 @@ const App = () => {
         </NavigationMenu>
       </div>
 
+      <Toaster position="top-right" richColors />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/jobs" element={<Jobs />} />
@@ -60,7 +63,12 @@ const App = () => {
           }
         />
         <Route path="/candidates/:id" element={<CandidateDetail />} />
-        <Route path="/assessment" element={<Assessment />} />
+        <Route path="/assessments/:jobId" element={<AssessmentList />} />
+        <Route path="/assessment-builder/:jobId" element={<Assessment />} />
+        <Route
+          path="/take-assessment/:assessmentId/:jobId"
+          element={<AssessmentTest />}
+        />
         <Route path="/kanban/:jobid" element={<KanbanBoard />} />
       </Routes>
     </Router>

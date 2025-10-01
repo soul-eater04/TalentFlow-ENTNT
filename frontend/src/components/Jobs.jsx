@@ -258,6 +258,22 @@ const Jobs = () => {
                                       View Progress Board
                                     </Button>
                                   </Link>
+                                  <Link to={`/assessment-builder/${job.id}`}>
+                                    <Button
+                                      variant="outline"
+                                      className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium transition-all duration-200 w-full sm:w-auto"
+                                    >
+                                      Assessment Builder
+                                    </Button>
+                                  </Link>
+                                  <Link to={`/assessments/${job.id}`}>
+                                    <Button
+                                      variant="outline"
+                                      className="border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg font-medium transition-all duration-200 w-full sm:w-auto"
+                                    >
+                                      Take Assessment
+                                    </Button>
+                                  </Link>
                                 </div>
                               </div>
                             </div>
