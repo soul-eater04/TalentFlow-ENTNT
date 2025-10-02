@@ -72,7 +72,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="py-6 border-t border-gray-200 dark:border-gray-700 text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Built for the recruitment process of ENTNT with ❤️
+          Built for the recruitment process of ENTNT.
         </p>
       </footer>
     </div>
