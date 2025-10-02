@@ -2,14 +2,16 @@ import React, { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Link, useParams } from "react-router-dom";
 
-const stages = [
-  "applied",
-  "screening",
-  "technical",
-  "offer",
-  "hired",
-  "rejected",
-];
+const stages = ["applied", "screening", "technical", "offer", "hired", "rejected"];
+
+const stageColors = {
+  applied: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300",
+  screening: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300",
+  technical: "bg-purple-100 dark:bg-purple-900 text-purple-300",
+  offer: "bg-green-100 dark:bg-green-900 text-green-300",
+  hired: "bg-emerald-100 dark:bg-emerald-900 text-emerald-300",
+  rejected: "bg-red-50 dark:bg-red-900 text-red-400 border border-dashed border-red-500 dark:border-red-600",
+};
 
 const KanbanBoard = () => {
   const { jobid } = useParams();
@@ -23,17 +25,9 @@ const KanbanBoard = () => {
         const res = await fetch(`/api/candidates/${jobid}`);
         const data = await res.json();
 
-        // Organize into stages
-        const grouped = stages.reduce(
-          (acc, stage) => ({ ...acc, [stage]: [] }),
-          {}
-        );
+        const grouped = stages.reduce((acc, stage) => ({ ...acc, [stage]: [] }), {});
         data.candidates.forEach((c) => {
-          if (grouped[c.stage]) {
-            grouped[c.stage].push(c);
-          } else {
-            grouped.applied.push(c); // fallback if stage missing
-          }
+          grouped[c.stage] ? grouped[c.stage].push(c) : grouped.applied.push(c);
         });
 
         setCandidates(grouped);
@@ -48,24 +42,15 @@ const KanbanBoard = () => {
   const onDragEnd = async (result) => {
     const { source, destination } = result;
     if (!destination) return;
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
-    }
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     const sourceList = Array.from(candidates[source.droppableId]);
     const [moved] = sourceList.splice(source.index, 1);
-
     const destList = Array.from(candidates[destination.droppableId]);
     destList.splice(destination.index, 0, moved);
 
-    if(source.droppableId === destination.droppableId) {
-      return; // no stage change, no API call
-    }
-    
-    // Optimistic update
+    if (source.droppableId === destination.droppableId) return;
+
     const updatedCandidates = {
       ...candidates,
       [source.droppableId]: sourceList,
@@ -73,12 +58,7 @@ const KanbanBoard = () => {
     };
     setCandidates(updatedCandidates);
 
-    // Prepare payload
-    const payload = {
-      stage: destination.droppableId,
-      stageUpdatedAt: new Date().toISOString(),
-    };
-
+    const payload = { stage: destination.droppableId, stageUpdatedAt: new Date().toISOString() };
     try {
       await fetch(`/api/candidates/${moved.id}`, {
         method: "PATCH",
@@ -88,52 +68,48 @@ const KanbanBoard = () => {
       console.log(`✅ Updated ${moved.name} → ${destination.droppableId}`);
     } catch (err) {
       console.error("❌ Failed to update candidate stage:", err);
-      // Optionally rollback
-      setCandidates(candidates);
+      setCandidates(candidates); // rollback
     }
   };
 
-
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex flex-col gap-4 p-4 h-[100%]">
-        <div className="flex gap-4 flex-1 flex-grow">
-          {stages.map((stage) => (
-            <Droppable key={stage} droppableId={stage}>
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className="bg-muted flex-1 rounded-lg p-2">
-                  <h2 className="font-bold capitalize mb-2 sticky top-0 bg-muted z-10 p-2 shadow-sm rounded-t-lg">
-                    {stage}
-                  </h2>
-                  {candidates[stage]?.map((candidate, index) => (
-                    <Draggable
-                      key={candidate.id}
-                      draggableId={candidate.id}
-                      index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="mb-2 shadow-sm">
-                          <Link to={`/candidates/${candidate.id}`} className="hover:underline">
-                            <div className="p-3 rounded-3xl">
-                              {candidate.name}
-                            </div>
-                          </Link>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          ))}
-        </div>
+      <div className="flex gap-4 p-4 min-h-screen">
+        {stages.map((stage) => (
+          <Droppable key={stage} droppableId={stage}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-2 flex flex-col max-h-[80vh] overflow-y-auto"
+              >
+                <h2 className="font-bold capitalize mb-2 sticky top-0 bg-gray-100 dark:bg-gray-800 z-10 p-2 shadow-sm rounded-t-lg text-gray-900 dark:text-gray-100">
+                  {stage}
+                </h2>
+                {candidates[stage]?.map((candidate, index) => (
+                  <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className={`mb-2 p-3 rounded-2xl shadow-sm transition-all duration-200 cursor-pointer
+                          ${stageColors[stage]}
+                          ${snapshot.isDragging ? "scale-105 shadow-lg" : "hover:scale-105 hover:shadow-md"}
+                        `}
+                      >
+                        <Link to={`/candidates/${candidate.id}`} className="block">
+                          {candidate.name}
+                        </Link>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        ))}
       </div>
     </DragDropContext>
   );

@@ -11,43 +11,16 @@ import JobDetail from "./components/JobDetail";
 import Candidates from "./components/Candidates";
 import CandidateDetail from "./components/CandidateDetail";
 import { Assessment, AssessmentTest } from "./components/Assessment";
-import { ModeToggle } from "./ModeToggle";
+import { ModeToggle } from "./components/ModeToggle";
 import KanbanBoard from "./components/KanbanBoard";
 import { Toaster } from "sonner";
 import AssessmentList from "./components/AssessmentList";
+import NavBar from "./components/NavBar";
 
 const App = () => {
   return (
     <Router>
-      <div className="sticky bg-muted top-0 z-10 px-4 shadow-sm">
-        <NavigationMenu>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to="/">Home</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to="/jobs">Jobs</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to="/candidates">Candidates</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to="/assessment">Assessment</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <ModeToggle />
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
-      </div>
+      <NavBar />
 
       <Toaster position="top-right" richColors />
       <Routes>
@@ -57,9 +30,7 @@ const App = () => {
         <Route
           path="/candidates"
           element={
-            <div className="container-with-no-fixed-width">
               <Candidates />
-            </div>
           }
         />
         <Route path="/candidates/:id" element={<CandidateDetail />} />

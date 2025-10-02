@@ -22,22 +22,23 @@ import {
 import { toast } from "sonner";
 import { MentionInput } from "mentis";
 import "mentis/dist/index.css";
+
 const getStageColor = (stage) => {
   switch (stage) {
     case "applied":
-      return "bg-blue-500";
+      return "bg-blue-500 dark:bg-blue-700";
     case "screening":
-      return "bg-yellow-500";
+      return "bg-yellow-500 dark:bg-yellow-600";
     case "technical":
-      return "bg-purple-500";
+      return "bg-purple-500 dark:bg-purple-700";
     case "offer":
-      return "bg-green-500";
+      return "bg-green-500 dark:bg-green-700";
     case "hired":
-      return "bg-green-700";
+      return "bg-green-700 dark:bg-green-800";
     case "rejected":
-      return "bg-red-500";
+      return "bg-red-500 dark:bg-red-600";
     default:
-      return "bg-gray-500";
+      return "bg-gray-500 dark:bg-gray-600";
   }
 };
 
@@ -64,11 +65,8 @@ const CandidateDetail = () => {
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // inside CandidateDetail component
   const [note, setNote] = useState("");
   const [loadingNote, setLoadingNote] = useState(false);
-  const [noteError, setNoteError] = useState("");
-  const [noteSuccess, setNoteSuccess] = useState(false);
 
   const fetchCandidate = async () => {
     try {
@@ -84,25 +82,19 @@ const CandidateDetail = () => {
   const handleAddNote = async (e) => {
     e.preventDefault();
     if (!note.trim()) return;
-
     setLoadingNote(true);
-    setNoteError("");
     try {
       await axios.put(`/api/candidates/${id}`, { note });
-      console.log("Note saved successfully");
       toast.success("Note saved successfully!");
-      console.log("Note saved:", note);
       setNote("");
       fetchCandidate();
     } catch (err) {
       console.error("Failed to save note:", err);
       toast.error("Failed to save note. Try again.");
-      setNoteError("Failed to save note. Try again.");
     } finally {
       setLoadingNote(false);
     }
   };
-
 
   useEffect(() => {
     if (id) fetchCandidate();
@@ -110,33 +102,30 @@ const CandidateDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-64 text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Loader className="animate-spin text-indigo-500" />
-          <span>Loading candidate details...</span>
-        </div>
+      <div className="flex justify-center items-center min-h-screen text-gray-500 dark:text-gray-400">
+        <Loader className="animate-spin text-indigo-500 mr-2" />
+        <span>Loading candidate details...</span>
       </div>
     );
   }
 
   if (!candidate) {
     return (
-      <div className="flex justify-center items-center min-h-64 text-destructive">
+      <div className="flex justify-center items-center min-h-screen text-red-500 dark:text-red-400">
         <span>Candidate not found</span>
       </div>
     );
   }
 
-  // Ensure the timeline is reversed to show the newest stages first (top)
   const reversedTimeline = [...candidate.timeline].reverse();
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-8 p-6 max-w-3xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Candidate Header */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle>{candidate.name}</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-gray-900 dark:text-gray-100">{candidate.name}</CardTitle>
+          <CardDescription className="text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-indigo-500" />
               <span>{candidate.email}</span>
@@ -146,72 +135,65 @@ const CandidateDetail = () => {
         <CardContent>
           <div className="flex justify-between items-start">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <Phone className="w-4 h-4" />
                 <span>{candidate.phone}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <MapPin className="w-4 h-4" />
                 <span>{candidate.location}</span>
               </div>
             </div>
             <Badge
-              className={`text-base px-3 py-1 ${getStageColor(
-                candidate.stage
-              )} text-white`}>
-              {candidate.stage.charAt(0).toUpperCase() +
-                candidate.stage.slice(1)}
+              className={`text-base px-3 py-1 ${getStageColor(candidate.stage)} text-white`}
+            >
+              {candidate.stage.charAt(0).toUpperCase() + candidate.stage.slice(1)}
             </Badge>
           </div>
         </CardContent>
       </Card>
 
       {/* Timeline */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle>Application Timeline</CardTitle>
+          <CardTitle className="text-gray-900 dark:text-gray-100">Application Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col relative">
-            {/* Timeline container with flexbox */}
-            <div className="flex flex-col gap-6 relative pl-12">
-              {reversedTimeline.map((entry, idx) => (
-                <div key={idx} className="flex items-start relative">
-                  <div
-                    className={`absolute -left-10 flex items-center justify-center w-8 h-8 rounded-full z-9 ${getStageColor(
-                      entry.stage
-                    )} shadow-md`}>
-                    {getStageIcon(entry.stage)}
-                  </div>
-
-                  {/* Content section */}
-                  <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-lg">
-                      {entry.stage.charAt(0).toUpperCase() +
-                        entry.stage.slice(1)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(entry.stageUpdatedAt).toLocaleString()}
-                    </span>
-                  </div>
+          <div className="flex flex-col gap-6 relative pl-12">
+            {reversedTimeline.map((entry, idx) => (
+              <div key={idx} className="flex items-start relative">
+                <div
+                  className={`absolute -left-10 flex items-center justify-center w-8 h-8 rounded-full shadow-md z-10 ${getStageColor(
+                    entry.stage
+                  )}`}
+                >
+                  {getStageIcon(entry.stage)}
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                    {entry.stage.charAt(0).toUpperCase() + entry.stage.slice(1)}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(entry.stageUpdatedAt).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
       {candidate.notes && (
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle>Notes about the candidate</CardTitle>
+            <CardTitle className="text-gray-900 dark:text-gray-100">Notes about the candidate</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
               {candidate.notes.map((note, index) => (
-                <div key={index} className="border-b border-muted py-2">
-                  <p className="text-sm">{index + 1}. {(note.text)}</p>
-                  <span className="text-xs text-muted-foreground">
+                <div key={index} className="border-b border-gray-200 dark:border-gray-700 py-2">
+                  <p className="text-sm text-gray-900 dark:text-gray-100">{index + 1}. {note.text}</p>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {new Date(note.date).toLocaleString()}
                   </span>
                 </div>
@@ -222,10 +204,10 @@ const CandidateDetail = () => {
       )}
 
       {/* Notes Section */}
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle>Write a Note</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-gray-900 dark:text-gray-100">Write a Note</CardTitle>
+          <CardDescription className="text-gray-500 dark:text-gray-400">
             Add an internal note about this candidate.
           </CardDescription>
         </CardHeader>
@@ -236,16 +218,18 @@ const CandidateDetail = () => {
               dataValue={note}
               onChange={(mentionData) => setNote(mentionData.dataValue)}
               options={[
-                {label: "Alice", value: "Alice"},
-                {label: "Bob", value: "Bob"},
-                {label: "Charlie", value: "Charlie"},
+                { label: "Alice", value: "Alice" },
+                { label: "Bob", value: "Bob" },
+                { label: "Charlie", value: "Charlie" },
               ]}
+              className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md p-2 w-full"
             />
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={loadingNote}
-                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
                 {loadingNote ? "Saving..." : "Save Note"}
               </button>
             </div>

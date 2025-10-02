@@ -43,7 +43,7 @@ export function CreateJobModal({ fetchJobs }) {
         postingDate: new Date().toISOString(),
       });
 
-      await fetchJobs(); // refresh list
+      await fetchJobs();
       setOpen(false);
 
       // reset form
@@ -64,10 +64,12 @@ export function CreateJobModal({ fetchJobs }) {
       <DialogTrigger asChild>
         <Button variant="outline">New Job</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <DialogHeader>
-          <DialogTitle>Create Job</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-gray-900 dark:text-gray-100">
+            Create Job
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
             Fields marked with <span className="text-red-500">*</span> are
             required.
           </DialogDescription>
@@ -76,25 +78,26 @@ export function CreateJobModal({ fetchJobs }) {
         <form className="space-y-4 mt-4" onSubmit={handleSubmit}>
           {/* Title */}
           <div>
-            <Label>
+            <Label className="text-gray-700 dark:text-gray-300">
               Title <span className="text-red-500">*</span>
             </Label>
             <Input
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
           {/* Status */}
           <div>
-            <Label>
+            <Label className="text-gray-700 dark:text-gray-300">
               Status <span className="text-red-500">*</span>
             </Label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             >
               <option value="active">Active</option>
               <option value="archived">Archived</option>
@@ -103,57 +106,67 @@ export function CreateJobModal({ fetchJobs }) {
 
           {/* Description (optional) */}
           <div>
-            <Label>Description</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Description</Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Short job description"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
-          {/* Posted By (optional) */}
+          {/* Posted By */}
           <div>
-            <Label>Posted By</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Posted By</Label>
             <Input
               value={postedBy}
               onChange={(e) => setPostedBy(e.target.value)}
               placeholder="Recruiter's name"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
-          {/* Location (optional) */}
+          {/* Location */}
           <div>
-            <Label>Location</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Location</Label>
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. Remote, New York"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
-          {/* Vacancies (optional, number) */}
+          {/* Vacancies */}
           <div>
-            <Label>Vacancies</Label>
+            <Label className="text-gray-700 dark:text-gray-300">Vacancies</Label>
             <Input
               type="number"
               value={vacancies}
               onChange={(e) => setVacancies(e.target.value)}
               placeholder="e.g. 3"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <Label>Tags (comma-separated)</Label>
+            <Label className="text-gray-700 dark:text-gray-300">
+              Tags (comma-separated)
+            </Label>
             <Input
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g. react, frontend"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
 
           {/* Submit */}
-          <Button type="submit" className="w-full">
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
             Create Job
           </Button>
         </form>

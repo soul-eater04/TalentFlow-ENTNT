@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const AssessmentList = () => {
   const { jobId } = useParams();
-  const navigate = useNavigate();
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,23 +27,54 @@ const AssessmentList = () => {
     fetchAssessments();
   }, [jobId]);
 
-  if (loading) return <p>Loading assessments...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-500 dark:text-gray-400">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span>Loading assessments...</span>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500 dark:text-red-400">
+        <p>Error: {error}</p>
+      </div>
+    );
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Available Assessments</h2>
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+        Available Assessments
+      </h2>
+
       {assessments.length === 0 ? (
-        <p>No assessments available for this job.</p>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center shadow-sm">
+          <p className="text-gray-500 dark:text-gray-400">
+            No assessments available for this job.
+          </p>
+          <Link
+            to="/jobs"
+            className="mt-4 inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Back to Jobs
+          </Link>
+        </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {assessments.map((assessment) => (
-            <Link to={`/take-assessment/${assessment.id}/${jobId}`} key={assessment.id}>
-              <li
-                className="cursor-pointer p-3 rounded-lg shadow-md hover:bg-gray-100 transition"
-              >
-              {assessment.name}
-            </li>
+            <Link
+              to={`/take-assessment/${assessment.id}/${jobId}`}
+              key={assessment.id}
+            >
+              <li className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 cursor-pointer">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  {assessment.name}
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  Click to start this assessment
+                </p>
+              </li>
             </Link>
           ))}
         </ul>
