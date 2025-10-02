@@ -93,6 +93,38 @@ export function makeServer() {
         return newJob;
       });
 
+      // PATCH /api/jobs/:id
+      this.patch("/jobs/:id", async (schema, request) => {
+        const { id } = request.params;
+        const attrs = JSON.parse(request.requestBody);
+        const job = await db.jobs.get(id);
+        
+        if (!job) {
+          return new Response(404, {}, { error: "Job not found" });
+        }
+        
+        // Create update object with only the fields that changed
+        const updates = {};
+        
+        if (attrs.title !== undefined) {
+          updates.title = attrs.title;
+          updates.slug = slugify(attrs.title);
+        }
+        if (attrs.status !== undefined) updates.status = attrs.status;
+        if (attrs.tags !== undefined) updates.tags = attrs.tags;
+        if (attrs.description !== undefined) updates.description = attrs.description;
+        if (attrs.postedBy !== undefined) updates.postedBy = attrs.postedBy;
+        if (attrs.location !== undefined) updates.location = attrs.location;
+        if (attrs.vacancies !== undefined) updates.vacancies = attrs.vacancies;
+        if (attrs.postingDate !== undefined) updates.postingDate = attrs.postingDate;
+        console.log("Updates object:", updates);
+        await db.jobs.update(job.id, updates);
+        
+        // Fetch and return the updated job
+        const updatedJob = await db.jobs.get(job.id);
+        return { job: updatedJob };
+      });
+
       // PATCH /api/jobs/:id/reorder
       this.patch("/jobs/:id/reorder", async (schema, request) => {
         // Simulate random server error 20% of the time
@@ -281,6 +313,29 @@ export function makeServer() {
         db.assessments.add(newAssessment);
 
         return { assessment: newAssessment };
+      });
+
+      this.post("/assessment/:jobId/submit", (schema, request) => {
+        try {
+          const jobId = request.params.jobId;
+          const attrs = JSON.parse(request.requestBody);
+
+          const submission = schema.db.submissions.insert({
+            id: faker.string.uuid(), // unique id
+            jobId,
+            assessmentId: attrs.assessmentId || null,
+            responses: attrs.responses || [],
+            submittedAt: attrs.submittedAt || new Date().toISOString(),
+          });
+
+          return { success: true, submission };
+        } catch (error) {
+          return new Response(
+            400,
+            {},
+            { error: "Failed to save submission", details: error.message }
+          );
+        }
       });
     },
   });

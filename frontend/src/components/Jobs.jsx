@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "./ui/button";
 import { CreateJobModal } from "./CreateJobModal";
+import { EditJobModal } from "./EditJobModal";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { ApplyJobModal } from "./ApplyJobModal";
-import { Search, MapPin, Users, Calendar, GripVertical, Briefcase } from "lucide-react";
+import { Search, MapPin, Users, Calendar, GripVertical, Briefcase, Edit } from "lucide-react";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -17,6 +18,7 @@ const Jobs = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [applyJobId, setApplyJobId] = useState(null);
+  const [editJob, setEditJob] = useState(null);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -192,25 +194,57 @@ const Jobs = () => {
                                     </p>
                                   </div>
 
-                                  {/* Status Badge */}
+                                  {/* Status Toggle & Edit Button */}
                                   <div className="flex items-center gap-3">
-                                    <span
-                                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                    <button
+                                      onClick={() => setEditJob(job)}
+                                      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                                      title="Edit job"
+                                    >
+                                      <Edit className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        const newStatus = job.status === "active" ? "archived" : "active";
+                                        const prevJobs = [...jobs]; // keep backup in case API fails
+
+                                        // optimistic update
+                                        setJobs((current) =>
+                                          current.map((j) =>
+                                            j.id === job.id ? { ...j, status: newStatus } : j
+                                          )
+                                        );
+
+                                        try {
+                                          await axios.patch(`/api/jobs/${job.id}`, { status: newStatus });
+                                        } catch (err) {
+                                          console.error("Failed to update job status:", err);
+                                          setJobs(prevJobs); // rollback
+                                        }
+                                      }}
+                                      className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-200 ${
                                         job.status === "active"
-                                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                                          ? "bg-green-500"
+                                          : "bg-gray-400 dark:bg-gray-600"
                                       }`}
                                     >
-                                      <div
-                                        className={`w-2 h-2 rounded-full mr-2 ${
-                                          job.status === "active"
-                                            ? "bg-green-500"
-                                            : "bg-gray-400 dark:bg-gray-500"
+                                      <span
+                                        className={`inline-block h-5 w-5 transform rounded-full bg-white dark:bg-gray-200 shadow transition-transform duration-200 ${
+                                          job.status === "active" ? "translate-x-6" : "translate-x-1"
                                         }`}
-                                      ></div>
+                                      />
+                                    </button>
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        job.status === "active"
+                                          ? "text-green-600 dark:text-green-300"
+                                          : "text-gray-600 dark:text-gray-400"
+                                      }`}
+                                    >
                                       {job.status === "active" ? "Active" : "Archived"}
                                     </span>
                                   </div>
+
                                 </div>
 
                                 {/* Job Meta Information */}
@@ -327,6 +361,14 @@ const Jobs = () => {
 
         {/* Apply Job Modal */}
         <ApplyJobModal jobId={applyJobId} open={!!applyJobId} onClose={() => setApplyJobId(null)} />
+        
+        {/* Edit Job Modal */}
+        <EditJobModal 
+          job={editJob} 
+          open={!!editJob} 
+          onClose={() => setEditJob(null)} 
+          fetchJobs={fetchJobs} 
+        />
       </div>
     </div>
   );

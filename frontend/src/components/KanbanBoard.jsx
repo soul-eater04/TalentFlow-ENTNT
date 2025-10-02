@@ -73,45 +73,54 @@ const KanbanBoard = () => {
   };
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-4 p-4 min-h-screen">
-        {stages.map((stage) => (
-          <Droppable key={stage} droppableId={stage}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-2 flex flex-col max-h-[80vh] overflow-y-auto"
-              >
-                <h2 className="font-bold capitalize mb-2 sticky top-0 bg-gray-100 dark:bg-gray-800 z-10 p-2 shadow-sm rounded-t-lg text-gray-900 dark:text-gray-100">
-                  {stage}
-                </h2>
-                {candidates[stage]?.map((candidate, index) => (
-                  <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`mb-2 p-3 rounded-2xl shadow-sm transition-all duration-200 cursor-pointer
-                          ${stageColors[stage]}
-                          ${snapshot.isDragging ? "scale-105 shadow-lg" : "hover:scale-105 hover:shadow-md"}
-                        `}
-                      >
-                        <Link to={`/candidates/${candidate.id}`} className="block">
-                          {candidate.name}
-                        </Link>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        ))}
+    <div>
+      <div>
+        <h1 className="text-2xl font-bold p-4">Kanban Board</h1>
+        <div className="px-4 text-gray-600 dark:text-gray-400 mb-2">
+          Drag and drop candidates between stages to update their status.
+        </div>
+        <div className="px-4 text-gray-600 dark:text-gray-400 mb-2">You can click on the candidate's name to view their details.</div>
       </div>
-    </DragDropContext>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex gap-4 p-4 min-h-screen">
+          {stages.map((stage) => (
+            <Droppable key={stage} droppableId={stage}>
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-2 flex flex-col max-h-[80vh] overflow-y-auto"
+                >
+                  <h2 className="font-bold capitalize mb-2 sticky top-0 bg-gray-100 dark:bg-gray-800 z-10 p-2 shadow-sm rounded-t-lg text-gray-900 dark:text-gray-100">
+                    {stage}
+                  </h2>
+                  {candidates[stage]?.map((candidate, index) => (
+                    <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`mb-2 p-3 rounded-2xl shadow-sm transition-all duration-200 cursor-pointer
+                            ${stageColors[stage]}
+                            ${snapshot.isDragging ? "scale-105 shadow-lg" : "hover:scale-105 hover:shadow-md"}
+                          `}
+                        >
+                          <Link to={`/candidates/${candidate.id}`} className="block">
+                            {candidate.name}
+                          </Link>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          ))}
+        </div>
+      </DragDropContext>
+    </div>
   );
 };
 

@@ -8,6 +8,7 @@ db.version(1).stores({
   jobs: "id,title,slug,status,tags,postingDate,order",
   candidates: "id,name,jobId,email,stage,stageUpdatedAt",
   assessments: "id,jobId,name,questions",
+  submissions: "id,jobId,assessmentId,submittedAt" 
 });
 
 function generateMockJobs(count = 100) {
