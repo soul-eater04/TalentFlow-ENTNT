@@ -329,9 +329,11 @@ TalentFlow supports all modern browsers:
 
 - **Candidates Page Total Count**: The total candidate count display refreshes and becomes inaccurate when using client-side search, as the counter reflects filtered results rather than the actual total candidate count in the database.
 
-- **Assessment Responses**: Candidate assessment responses are currently saved only in IndexedDB for local persistence. The responses are not yet displayed in the frontend interface, though they are successfully stored and can be retrieved programmatically.
+- **Assessment Responses**: Candidate assessment responses are currently saved only in IndexedDB(as submissions) for local persistence. The responses are not yet displayed in the frontend interface, though they are successfully stored and can be retrieved programmatically.
 
-- **Assessment Builder**: The assessment builder interface does not yet include a visual toggle or checkbox to mark questions as required. While the required field exists in the data model, the UI control for this feature is pending implementation.
+-- **Assessment Creating**: The New assessment created gets a random name with assessment appended to the back of it.
+
+- **Assessment Builder**: The assessment builder interface does not yet include a visual toggle or checkbox to mark other questions as required for this one.
 
 ---
 
