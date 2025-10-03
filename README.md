@@ -331,7 +331,7 @@ TalentFlow supports all modern browsers:
 
 - **Assessment Responses**: Candidate assessment responses are currently saved only in IndexedDB(as submissions) for local persistence. The responses are not yet displayed in the frontend interface, though they are successfully stored and can be retrieved programmatically.
 
--- **Assessment Creating**: The New assessment created gets a random name with assessment appended to the back of it.
+- **Assessment Creating**: The New assessment created gets a random name with assessment appended to the back of it.
 
 - **Assessment Builder**: The assessment builder interface does not yet include a visual toggle or checkbox to mark other questions as required for this one.
 
