@@ -16,6 +16,7 @@ function slugify(text) {
 export function makeServer() {
   return createServer({
     routes() {
+      this.passthrough("/openapi.yaml");
       this.namespace = "api";
 
       // GET /api/jobs

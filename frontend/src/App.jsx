@@ -16,6 +16,7 @@ import KanbanBoard from "./components/KanbanBoard";
 import { Toaster } from "sonner";
 import AssessmentList from "./components/AssessmentList";
 import NavBar from "./components/NavBar";
+import ApiDocs from "./components/ApiDocs";
 
 const App = () => {
   return (
@@ -41,6 +42,7 @@ const App = () => {
           element={<AssessmentTest />}
         />
         <Route path="/kanban/:jobid" element={<KanbanBoard />} />
+        <Route path="/docs" element={<ApiDocs />} />
       </Routes>
     </Router>
   );

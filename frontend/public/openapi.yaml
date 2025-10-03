@@ -1,0 +1,888 @@
+openapi: 3.0.3
+info:
+  title: TalentFlow API
+  description: |
+    REST API for TalentFlow hiring platform built with MirageJS for API simulation.
+    This API provides endpoints for managing jobs, candidates, and assessments in a hiring platform.
+    All data is persisted locally using IndexedDB through Dexie, with MirageJS simulating realistic API behavior including latency and error responses.
+    
+    **Features:**
+    - Artificial latency (200-1200ms) on all requests
+    - Error simulation (5-10% failure rate on write operations)
+    - Local IndexedDB persistence
+    - No authentication required (demo application)
+  version: 1.0.0
+  contact:
+    name: TalentFlow API Support
+    url: https://github.com/soul-eater04/TalentFlow-ENTNT
+servers:
+  - url: http://localhost:5173/api
+    description: Local development server
+
+paths:
+  /jobs:
+    get:
+      summary: List Jobs
+      description: Retrieve a paginated list of jobs with optional filtering and searching
+      tags:
+        - Jobs
+      parameters:
+        - name: search
+          in: query
+          description: Filter jobs by title (case-insensitive)
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by job status
+          required: false
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sort
+          in: query
+          description: Sort criteria
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Job'
+                  totalPages:
+                    type: integer
+                    example: 5
+    post:
+      summary: Create Job
+      description: Create a new job posting
+      tags:
+        - Jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCreateRequest'
+      responses:
+        '200':
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/{slug}:
+    get:
+      summary: Get Job by Slug
+      description: Retrieve a specific job by its slug identifier
+      tags:
+        - Jobs
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Unique job slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/{id}:
+    patch:
+      summary: Update Job
+      description: Update an existing job's details (partial updates supported)
+      tags:
+        - Jobs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobUpdateRequest'
+      responses:
+        '200':
+          description: Job updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /jobs/{id}/reorder:
+    patch:
+      summary: Reorder Jobs
+      description: Update the display order of jobs with drag-and-drop functionality (20% error simulation)
+      tags:
+        - Jobs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job ID to reorder
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fromOrder
+                - toOrder
+              properties:
+                fromOrder:
+                  type: integer
+                  example: 5
+                toOrder:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Job reordered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Random server error (20% chance for testing rollback functionality)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /candidates:
+    get:
+      summary: List Candidates
+      description: Retrieve a paginated list of candidates with optional stage filtering
+      tags:
+        - Candidates
+      parameters:
+        - name: stage
+          in: query
+          description: Filter by candidate stage
+          required: false
+          schema:
+            type: string
+            enum: [applied, screening, technical, offer, hired, rejected]
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paginated:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Candidate'
+                  totalPages:
+                    type: integer
+                    example: 20
+    post:
+      summary: Create Candidate
+      description: Add a new candidate application
+      tags:
+        - Candidates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateCreateRequest'
+      responses:
+        '200':
+          description: Candidate created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidate:
+                    $ref: '#/components/schemas/Candidate'
+
+  /candidates/{jobId}:
+    get:
+      summary: Get Candidates by Job
+      description: Retrieve all candidates for a specific job (used for Kanban board)
+      tags:
+        - Candidates
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidates found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Candidate'
+
+  /candidates/{id}/timeline:
+    get:
+      summary: Get Candidate Timeline
+      description: Retrieve detailed timeline information for a specific candidate
+      tags:
+        - Candidates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Candidate ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidate timeline found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '404':
+          description: Candidate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /candidates/{id}:
+    patch:
+      summary: Update Candidate Stage
+      description: Move a candidate to a different stage in the hiring pipeline
+      tags:
+        - Candidates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Candidate ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stage
+                - stageUpdatedAt
+              properties:
+                stage:
+                  type: string
+                  enum: [applied, screening, technical, offer, hired, rejected]
+                stageUpdatedAt:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Candidate updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidate:
+                    $ref: '#/components/schemas/Candidate'
+        '404':
+          description: Candidate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to update candidate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Add Candidate Note
+      description: Add a note to a candidate's profile (supports @mentions)
+      tags:
+        - Candidates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Candidate ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - note
+              properties:
+                note:
+                  type: string
+                  example: "Follow up scheduled for technical interview @john.doe"
+      responses:
+        '200':
+          description: Note added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidate:
+                    $ref: '#/components/schemas/Candidate'
+        '400':
+          description: Note cannot be empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Candidate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /assessments/{jobId}:
+    get:
+      summary: Get Assessments for Job
+      description: Retrieve all assessments associated with a specific job
+      tags:
+        - Assessments
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Assessments found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assessment'
+    post:
+      summary: Create/Update Assessment
+      description: Create a new assessment or update an existing one for a job
+      tags:
+        - Assessments
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentCreateRequest'
+      responses:
+        '200':
+          description: Assessment created/updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assessment:
+                    $ref: '#/components/schemas/Assessment'
+
+  /assessment/{jobId}/submit:
+    post:
+      summary: Submit Assessment Response
+      description: Submit a candidate's responses to an assessment
+      tags:
+        - Assessments
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Job identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentSubmissionRequest'
+      responses:
+        '200':
+          description: Assessment submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  submission:
+                    $ref: '#/components/schemas/AssessmentSubmission'
+        '400':
+          description: Failed to save submission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Job:
+      type: object
+      required:
+        - id
+        - title
+        - slug
+        - status
+        - order
+        - postingDate
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Senior React Developer"
+        slug:
+          type: string
+          example: "senior-react-developer"
+        description:
+          type: string
+          example: "We are looking for an experienced React developer..."
+        status:
+          type: string
+          enum: [active, archived]
+          example: "active"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["react", "javascript", "frontend"]
+        order:
+          type: integer
+          example: 1
+        postedBy:
+          type: string
+          example: "John Doe"
+        location:
+          type: string
+          example: "Remote"
+        vacancies:
+          type: integer
+          example: 2
+        postingDate:
+          type: string
+          format: date-time
+          example: "2025-10-01T10:00:00.000Z"
+
+    JobCreateRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          example: "Frontend Developer"
+        description:
+          type: string
+          example: "Join our team as a frontend developer..."
+        status:
+          type: string
+          enum: [active, archived]
+          default: "active"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["react", "javascript"]
+        postedBy:
+          type: string
+          example: "Jane Smith"
+        location:
+          type: string
+          example: "New York"
+        vacancies:
+          type: integer
+          example: 1
+        postingDate:
+          type: string
+          format: date-time
+
+    JobUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        tags:
+          type: array
+          items:
+            type: string
+        postedBy:
+          type: string
+        location:
+          type: string
+        vacancies:
+          type: integer
+        postingDate:
+          type: string
+          format: date-time
+
+    Candidate:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - jobId
+        - stage
+        - timeline
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "uuid-string"
+        name:
+          type: string
+          example: "Alice Johnson"
+        email:
+          type: string
+          format: email
+          example: "alice.johnson@example.com"
+        phone:
+          type: string
+          example: "+1-555-0123"
+        location:
+          type: string
+          example: "San Francisco"
+        jobId:
+          type: string
+          example: "job-uuid"
+        stage:
+          type: string
+          enum: [applied, screening, technical, offer, hired, rejected]
+          example: "screening"
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              stage:
+                type: string
+              stageUpdatedAt:
+                type: string
+                format: date-time
+        notes:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                example: "Great portfolio, strong React skills"
+              date:
+                type: string
+                format: date-time
+
+    CandidateCreateRequest:
+      type: object
+      required:
+        - name
+        - email
+        - jobId
+      properties:
+        name:
+          type: string
+          example: "Carol Davis"
+        email:
+          type: string
+          format: email
+          example: "carol.davis@example.com"
+        jobId:
+          type: string
+          example: "job-uuid"
+
+    Assessment:
+      type: object
+      required:
+        - id
+        - jobId
+        - name
+        - sections
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "assessment-uuid"
+        jobId:
+          type: string
+          example: "job-uuid"
+        name:
+          type: string
+          example: "React Fundamentals Assessment"
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentSection'
+
+    AssessmentSection:
+      type: object
+      required:
+        - id
+        - title
+        - questions
+      properties:
+        id:
+          type: string
+          example: "section-uuid"
+        title:
+          type: string
+          example: "Core Concepts"
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+
+    Question:
+      type: object
+      required:
+        - id
+        - question
+        - type
+        - required
+      properties:
+        id:
+          type: string
+          example: "question-uuid"
+        question:
+          type: string
+          example: "What is the difference between a functional component and a class component?"
+        type:
+          type: string
+          enum: [single-choice, multi-choice, short-text, long-text, numeric, file-upload]
+          example: "short-text"
+        required:
+          type: boolean
+          example: true
+        options:
+          type: array
+          items:
+            type: string
+          description: "For choice questions only"
+          example: ["useState", "useEffect", "useReducer", "useMemo"]
+        minRange:
+          type: number
+          description: "For numeric questions only"
+          example: 1
+        maxRange:
+          type: number
+          description: "For numeric questions only"
+          example: 10
+        maxLength:
+          type: integer
+          description: "For text questions only"
+          example: 500
+        conditionalLogic:
+          type: object
+          description: "For conditional question display"
+          properties:
+            dependsOn:
+              type: string
+            showWhen:
+              type: string
+
+    AssessmentCreateRequest:
+      type: object
+      required:
+        - name
+        - sections
+      properties:
+        name:
+          type: string
+          example: "JavaScript Fundamentals"
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentSection'
+
+    AssessmentSubmissionRequest:
+      type: object
+      required:
+        - assessmentId
+        - responses
+      properties:
+        assessmentId:
+          type: string
+          format: uuid
+          example: "assessment-uuid"
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+                example: "q1"
+              answer:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                      type: string
+                  - type: number
+                example: "A closure is a function that has access to variables in its outer scope..."
+        submittedAt:
+          type: string
+          format: date-time
+
+    AssessmentSubmission:
+      type: object
+      required:
+        - id
+        - jobId
+        - assessmentId
+        - responses
+        - submittedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "submission-uuid"
+        jobId:
+          type: string
+          example: "job-uuid"
+        assessmentId:
+          type: string
+          format: uuid
+          example: "assessment-uuid"
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              answer:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                      type: string
+                  - type: number
+        submittedAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Resource not found"
+        details:
+          type: string
+          description: "Additional error details"
+
+tags:
+  - name: Jobs
+    description: Job management operations
+  - name: Candidates
+    description: Candidate tracking and management
+  - name: Assessments
+    description: Assessment creation and submission
