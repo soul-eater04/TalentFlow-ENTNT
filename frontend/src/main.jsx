@@ -8,14 +8,11 @@ import { seedCandidates, seedJobs } from '../mirage/db';
 import { ThemeProvider } from './context/ThemeProvider';
 
 async function main() {
-  if (import.meta.env.DEV) {
-    console.log("Setting up Mirage and seeding database...");
-    await seedJobs();
-    await seedCandidates();
-    makeServer();
-    console.log("Mirage server is ready.");
-  }
-  
+  console.log("Setting up Mirage and seeding database...");
+  await seedJobs();
+  await seedCandidates();
+  makeServer();
+  console.log("Mirage server is ready.");
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <ThemeProvider>
