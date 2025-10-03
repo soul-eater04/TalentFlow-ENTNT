@@ -7,6 +7,7 @@ import { EditJobModal } from "./EditJobModal";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { ApplyJobModal } from "./ApplyJobModal";
 import { Search, MapPin, Users, Calendar, GripVertical, Briefcase, Edit } from "lucide-react";
+import { toast } from "sonner";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
@@ -52,9 +53,11 @@ const Jobs = () => {
         fromOrder: result.source.index,
         toOrder: result.destination.index,
       });
+      toast.success("Job order updated");
     } catch (err) {
-      console.error("Reorder failed, rolling back", err);
+      console.error("Reorder failed", err);
       setJobs(jobs); // rollback
+      toast.error("Failed to reorder jobs");
     }
   };
 
@@ -217,9 +220,11 @@ const Jobs = () => {
 
                                         try {
                                           await axios.patch(`/api/jobs/${job.id}`, { status: newStatus });
+                                          toast.success(`Job marked as ${newStatus}`);
                                         } catch (err) {
                                           console.error("Failed to update job status:", err);
                                           setJobs(prevJobs); // rollback
+                                          toast.error("Failed to update job status. Please retry.");
                                         }
                                       }}
                                       className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-200 ${

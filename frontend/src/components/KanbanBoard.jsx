@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const stages = ["applied", "screening", "technical", "offer", "hired", "rejected"];
 
@@ -10,7 +11,8 @@ const stageColors = {
   technical: "bg-purple-100 dark:bg-purple-900 text-purple-300",
   offer: "bg-green-100 dark:bg-green-900 text-green-300",
   hired: "bg-emerald-100 dark:bg-emerald-900 text-emerald-300",
-  rejected: "bg-red-50 dark:bg-red-900 text-red-400 border border-dashed border-red-500 dark:border-red-600",
+  rejected:
+    "bg-red-50 dark:bg-red-900 text-red-400 border border-dashed border-red-500 dark:border-red-600",
 };
 
 const KanbanBoard = () => {
@@ -32,6 +34,7 @@ const KanbanBoard = () => {
 
         setCandidates(grouped);
       } catch (err) {
+        toast.error(" Failed to fetch candidates");
         console.error("❌ Failed to fetch candidates:", err);
       }
     }
@@ -43,6 +46,8 @@ const KanbanBoard = () => {
     const { source, destination } = result;
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    const prevState = candidates; // snapshot before optimistic update
 
     const sourceList = Array.from(candidates[source.droppableId]);
     const [moved] = sourceList.splice(source.index, 1);
@@ -60,15 +65,19 @@ const KanbanBoard = () => {
 
     const payload = { stage: destination.droppableId, stageUpdatedAt: new Date().toISOString() };
     try {
-      await fetch(`/api/candidates/${moved.id}`, {
+      const res = await fetch(`/api/candidates/${moved.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      console.log(`✅ Updated ${moved.name} → ${destination.droppableId}`);
+
+      if (!res.ok) throw new Error("Server failed to update candidate");
+
+      toast.success(`${moved.name} moved to ${destination.droppableId}`);
     } catch (err) {
-      console.error("❌ Failed to update candidate stage:", err);
-      setCandidates(candidates); // rollback
+      console.error("Failed to update candidate stage:", err);
+      setCandidates(prevState); // rollback
+      toast.error(`Failed to move ${moved.name}. Rolled back.`);
     }
   };
 
@@ -79,7 +88,9 @@ const KanbanBoard = () => {
         <div className="px-4 text-gray-600 dark:text-gray-400 mb-2">
           Drag and drop candidates between stages to update their status.
         </div>
-        <div className="px-4 text-gray-600 dark:text-gray-400 mb-2">You can click on the candidate's name to view their details.</div>
+        <div className="px-4 text-gray-600 dark:text-gray-400 mb-2">
+          You can click on the candidate's name to view their details.
+        </div>
       </div>
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-4 p-4 min-h-screen">
