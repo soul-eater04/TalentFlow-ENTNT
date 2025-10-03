@@ -13,7 +13,7 @@ const Jobs = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [sort, setSort] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -332,32 +332,77 @@ const Jobs = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-8">
-            <div className="flex justify-center items-center gap-4">
-              <Button
-                variant="outline"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </Button>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Page <span className="font-semibold text-gray-900 dark:text-gray-100">{page}</span> of{" "}
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">{totalPages}</span>
-                </span>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+              
+              {/* Left controls: Page size + Go to page */}
+              <div className="flex items-center gap-4">
+                {/* Page Size */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400">Page size:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={pageSize}
+                    onChange={(e) => {
+                      const newSize = Number(e.target.value);
+                      if (newSize > 0) {
+                        setPageSize(newSize);
+                        setPage(1); // reset to first page when page size changes
+                      }
+                    }}
+                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* Go To Page */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400">Go to page:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={page}
+                    onChange={(e) => {
+                      let newPage = Number(e.target.value);
+                      if (newPage >= 1 && newPage <= totalPages) {
+                        setPage(newPage);
+                      }
+                    }}
+                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
               </div>
-              <Button
-                variant="outline"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </Button>
+
+              {/* Right controls: Prev/Next */}
+              <div className="flex justify-center items-center gap-4">
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Page <span className="font-semibold text-gray-900 dark:text-gray-100">{page}</span> of{" "}
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{totalPages}</span>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
         )}
+
 
         {/* Apply Job Modal */}
         <ApplyJobModal jobId={applyJobId} open={!!applyJobId} onClose={() => setApplyJobId(null)} />
