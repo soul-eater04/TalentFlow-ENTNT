@@ -13,6 +13,20 @@ function slugify(text) {
     .replace(/\-\-+/g, "-"); // collapse dashes
 }
 
+function randomDelay() {
+  return new Promise((resolve) => {
+    const delay = Math.floor(Math.random() * (1200 - 200 + 1)) + 200;
+    setTimeout(resolve, delay);
+  });
+}
+
+function maybeFail(probability = 0.1) {
+  // probability = 0.1 → 10% chance of failure
+  if (Math.random() < probability) {
+    throw new Error("Simulated server error");
+  }
+}
+
 export function makeServer() {
   return createServer({
     routes() {
@@ -62,40 +76,49 @@ export function makeServer() {
 
       // POST /api/jobs (create/update)
       this.post("/jobs", async (schema, request) => {
-        const attrs = JSON.parse(request.requestBody);
+        await randomDelay();
 
-        // Get current max order & id
-        const allJobs = await db.jobs.toArray();
-        const maxOrder = allJobs.length
-          ? Math.max(...allJobs.map((j) => j.order || 0))
-          : 0;
-        const maxId = allJobs.length
-          ? Math.max(...allJobs.map((j) => j.id || 0))
-          : 0;
-
-        // Build new job
-        const newJob = {
-          id: maxId + 1,
-          title: attrs.title,
-          slug: slugify(attrs.title),
-          status: attrs.status || "active",
-          tags: attrs.tags || [],
-          order: maxOrder + 1,
-          description: attrs.description || "",
-          postedBy: attrs.postedBy || "",
-          location: attrs.location || "",
-          vacancies: attrs.vacancies || 0,
-          postingDate: attrs.postingDate || new Date().toISOString(),
-        };
-
-        // Save to IndexedDB via Dexie
-        await db.jobs.add(newJob);
-
-        return newJob;
+        try{
+          maybeFail(0.1); // 10% chance of failure
+          const attrs = JSON.parse(request.requestBody);
+  
+          // Get current max order & id
+          const allJobs = await db.jobs.toArray();
+          const maxOrder = allJobs.length
+            ? Math.max(...allJobs.map((j) => j.order || 0))
+            : 0;
+          const maxId = allJobs.length
+            ? Math.max(...allJobs.map((j) => j.id || 0))
+            : 0;
+  
+          // Build new job
+          const newJob = {
+            id: maxId + 1,
+            title: attrs.title,
+            slug: slugify(attrs.title),
+            status: attrs.status || "active",
+            tags: attrs.tags || [],
+            order: maxOrder + 1,
+            description: attrs.description || "",
+            postedBy: attrs.postedBy || "",
+            location: attrs.location || "",
+            vacancies: attrs.vacancies || 0,
+            postingDate: attrs.postingDate || new Date().toISOString(),
+          };
+  
+          // Save to IndexedDB via Dexie
+          await db.jobs.add(newJob);
+  
+          return newJob;
+        }
+        catch(e){
+          return new Response(500, {}, { error: e.message });
+        }
       });
 
       // PATCH /api/jobs/:id
       this.patch("/jobs/:id", async (schema, request) => {
+        await randomDelay();
         const { id } = request.params;
         const attrs = JSON.parse(request.requestBody);
         const job = await db.jobs.get(id);
@@ -104,69 +127,76 @@ export function makeServer() {
           return new Response(404, {}, { error: "Job not found" });
         }
         
-        // Create update object with only the fields that changed
-        const updates = {};
-        
-        if (attrs.title !== undefined) {
-          updates.title = attrs.title;
-          updates.slug = slugify(attrs.title);
+        try{
+          maybeFail(0.1); // 10% chance of failure
+
+          // Create update object with only the fields that changed
+          const updates = {};
+          
+          if (attrs.title !== undefined) {
+            updates.title = attrs.title;
+            updates.slug = slugify(attrs.title);
+          }
+          if (attrs.status !== undefined) updates.status = attrs.status;
+          if (attrs.tags !== undefined) updates.tags = attrs.tags;
+          if (attrs.description !== undefined) updates.description = attrs.description;
+          if (attrs.postedBy !== undefined) updates.postedBy = attrs.postedBy;
+          if (attrs.location !== undefined) updates.location = attrs.location;
+          if (attrs.vacancies !== undefined) updates.vacancies = attrs.vacancies;
+          if (attrs.postingDate !== undefined) updates.postingDate = attrs.postingDate;
+          console.log("Updates object:", updates);
+          await db.jobs.update(job.id, updates);
+          
+          // Fetch and return the updated job
+          const updatedJob = await db.jobs.get(job.id);
+          return { job: updatedJob };
+        } catch(e){
+          return new Response(500, {}, { error: e.message });
         }
-        if (attrs.status !== undefined) updates.status = attrs.status;
-        if (attrs.tags !== undefined) updates.tags = attrs.tags;
-        if (attrs.description !== undefined) updates.description = attrs.description;
-        if (attrs.postedBy !== undefined) updates.postedBy = attrs.postedBy;
-        if (attrs.location !== undefined) updates.location = attrs.location;
-        if (attrs.vacancies !== undefined) updates.vacancies = attrs.vacancies;
-        if (attrs.postingDate !== undefined) updates.postingDate = attrs.postingDate;
-        console.log("Updates object:", updates);
-        await db.jobs.update(job.id, updates);
-        
-        // Fetch and return the updated job
-        const updatedJob = await db.jobs.get(job.id);
-        return { job: updatedJob };
       });
 
       // PATCH /api/jobs/:id/reorder
       this.patch("/jobs/:id/reorder", async (schema, request) => {
-        // Simulate random server error 20% of the time
-        const rand = Math.random();
-        if (rand < 0.2) {
-          return new Response(500, {}, { error: "Random server error. Please try again." });
-        }
-
+        await randomDelay();
         const { id } = request.params;
         const { fromOrder, toOrder } = JSON.parse(request.requestBody);
+        try{
+          maybeFail(0.1); // 10% chance of failure
 
-        const job = await db.jobs.get(Number(id));
-        if (!job) {
-          return new Response(404, {}, { error: "Job not found" });
+          const job = await db.jobs.get(Number(id));
+          if (!job) {
+            return new Response(404, {}, { error: "Job not found" });
+          }
+  
+          if (fromOrder < toOrder) {
+            // Move down → shift jobs in (fromOrder, toOrder] up by -1
+            await db.jobs
+              .where("order")
+              .between(fromOrder + 1, toOrder, true, true)
+              .modify((j) => {
+                j.order = j.order - 1;
+              });
+          } else if (fromOrder > toOrder) {
+            // Move up → shift jobs in [toOrder, fromOrder) down by +1
+            await db.jobs
+              .where("order")
+              .between(toOrder, fromOrder - 1, true, true)
+              .modify((j) => {
+                j.order = j.order + 1;
+              });
+          }
+  
+          // Finally update the dragged job itself
+          await db.jobs.update(job.id, { order: toOrder });
+  
+          const updatedJob = await db.jobs.get(job.id);
+          return updatedJob;
+        } catch(e){
+          return new Response(500, {}, { error: e.message });
         }
-
-        if (fromOrder < toOrder) {
-          // Move down → shift jobs in (fromOrder, toOrder] up by -1
-          await db.jobs
-            .where("order")
-            .between(fromOrder + 1, toOrder, true, true)
-            .modify((j) => {
-              j.order = j.order - 1;
-            });
-        } else if (fromOrder > toOrder) {
-          // Move up → shift jobs in [toOrder, fromOrder) down by +1
-          await db.jobs
-            .where("order")
-            .between(toOrder, fromOrder - 1, true, true)
-            .modify((j) => {
-              j.order = j.order + 1;
-            });
-        }
-
-        // Finally update the dragged job itself
-        await db.jobs.update(job.id, { order: toOrder });
-
-        const updatedJob = await db.jobs.get(job.id);
-        return updatedJob;
       });
 
+      // GET /api/candidates
       this.get("/candidates", async (schema, request) => {
         console.log("request : ", request);
         const { stage, page } = request.queryParams;
@@ -188,6 +218,7 @@ export function makeServer() {
         return {paginated, totalPages};
       });
 
+      // GET /api/candidates/:id/timeline
       this.get("/candidates/:id/timeline", async (schema, request) => {
         const { id } = request.params;
         const candidate = await db.candidates.get(id);
@@ -195,6 +226,7 @@ export function makeServer() {
         return candidate;
       });
 
+      // GET /api/candidates/job/:jobid
       this.get("/candidates/:jobid", async (schema, request) => {
         const jobId = request.params.jobid;
 
@@ -207,12 +239,18 @@ export function makeServer() {
         }
       });
 
+      // PATCH /api/candidates/:id
       this.patch("/candidates/:id", async (schema, request) => {
+        await randomDelay();
         const { id } = request.params;
         const attrs = JSON.parse(request.requestBody);
         const { stage, stageUpdatedAt } = attrs;
         
         try {
+          maybeFail(0.1); // 10% chance of failure
+          if (!stage || !stageUpdatedAt) {
+            return new Response(400, {}, { error: "Missing required fields" });
+          }
           const candidate = await db.candidates.get(id);
           if (!candidate) {
             return new Response(404, {}, { error: "Candidate not found" });
@@ -240,7 +278,9 @@ export function makeServer() {
         }
       });
 
+      // PUT /api/candidates/:id (add note)
       this.put("/candidates/:id", async (schema, request) => {
+        await randomDelay();
         const { id } = request.params;
         const attrs = JSON.parse(request.requestBody);
         const { note } = attrs;
@@ -248,6 +288,7 @@ export function makeServer() {
           return new Response(400, {}, { error: "Note cannot be empty" });
         }
         try {
+          maybeFail(0.1); // 10% chance of failure
           const candidate = await db.candidates.get(id);
           if (!candidate) {
             return new Response(404, {}, { error: "Candidate not found" });
@@ -266,27 +307,34 @@ export function makeServer() {
       });
 
       this.post("/candidates", async (schema, request) => {
+        await randomDelay();
         const attrs = JSON.parse(request.requestBody);
-        const newCandidate = {
-          id: faker.string.uuid(),
-          name: attrs.name,
-          email: attrs.email,
-          phone: faker.phone.number(),
-          location: faker.location.city(),
-          jobId: attrs.jobId,
-          stage: "applied",
-          stageUpdatedAt: new Date().toISOString(),
-          timeline: [
-            {
-              stage: "applied",
-              stageUpdatedAt: new Date().toISOString(),
-            },
-          ],
-        };
-        await db.candidates.add(newCandidate);
-        return { candidate: newCandidate };
+        try{
+          maybeFail(0.1); // 10% chance of failure
+          const newCandidate = {
+            id: faker.string.uuid(),
+            name: attrs.name,
+            email: attrs.email,
+            phone: faker.phone.number(),
+            location: faker.location.city(),
+            jobId: attrs.jobId,
+            stage: "applied",
+            stageUpdatedAt: new Date().toISOString(),
+            timeline: [
+              {
+                stage: "applied",
+                stageUpdatedAt: new Date().toISOString(),
+              },
+            ],
+          };
+          await db.candidates.add(newCandidate);
+          return { candidate: newCandidate };
+        } catch(e){
+          return new Response(500, {}, { error: e.message });
+        }
       });
       
+      // GET /api/assessments/:jobId
       this.get("/assessments/:jobId", async (schema, request) => {
         const { jobId } = request.params;
         try {
@@ -298,7 +346,9 @@ export function makeServer() {
         }
       });
 
-      this.post("/assessments/:jobId", (schema, request) => {
+      // POST /api/assessments/:jobId (create new assessment)
+      this.post("/assessments/:jobId", async (schema, request) => {
+        await randomDelay();
         const { jobId } = request.params;
         const attrs = JSON.parse(request.requestBody);
 
@@ -316,8 +366,11 @@ export function makeServer() {
         return { assessment: newAssessment };
       });
 
-      this.post("/assessment/:jobId/submit", (schema, request) => {
+      // POST /api/assessment/:jobId/submit (submit assessment responses)
+      this.post("/assessment/:jobId/submit", async (schema, request) => {
+        await randomDelay();
         try {
+          maybeFail(0.1); // 10% chance of failure
           const jobId = request.params.jobId;
           const attrs = JSON.parse(request.requestBody);
 
